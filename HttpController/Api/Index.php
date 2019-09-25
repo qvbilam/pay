@@ -71,8 +71,8 @@ class Index extends Base
         if (!isset($data['data']['html'])) {
             return $this->error(-1, '获取地址失败');
         }
-        //$html = $data['data']['html'];
-        $html = htmlspecialchars_decode($data['data']['html']);
+        $html = $data['data']['html'];
+        // $html = htmlspecialchars_decode($data['data']['html']);
         echo $html;
         if (filter_var($html, FILTER_VALIDATE_URL, FILTER_FLAG_PATH_REQUIRED)) {
             // 输出
