@@ -73,7 +73,7 @@ class Index extends Base
         }
         $html = $data['data']['html'];
         // $html = htmlspecialchars_decode($data['data']['html']);
-        echo $html;
+        echo htmlspecialchars_decode($data['data']['html']);
         if (filter_var($html, FILTER_VALIDATE_URL, FILTER_FLAG_PATH_REQUIRED)) {
             // 输出
             return $this->response()->write($html);
