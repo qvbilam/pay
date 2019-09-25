@@ -232,10 +232,10 @@ class Index extends Base
             return ['code' => ReturnCode::CHECK_SIGN, 'msg' => ReturnCode::getReasonPhrase(ReturnCode::CHECK_SIGN) . 'rely sign:' . $signature];
         }
         // 验证订单
-        $checkOrder = (new Order())->checkMerchantOrder($params['mch_id'], $params['trade_no']);
-        if (!$checkOrder) {
-            return ['code' => ReturnCode::CHECK_ORDER, 'msg' => ReturnCode::getReasonPhrase(ReturnCode::CHECK_ORDER)];
-        }
+//        $checkOrder = (new Order())->checkMerchantOrder($params['mch_id'], $params['trade_no']);
+//        if (!$checkOrder) {
+//            return ['code' => ReturnCode::CHECK_ORDER, 'msg' => ReturnCode::getReasonPhrase(ReturnCode::CHECK_ORDER)];
+//        }
         // 获取商户在渠道下的费率
         $charge = (new Charge())->getCharge($params['mch_id'], $params['pay_type']);
         if (!$charge) {
