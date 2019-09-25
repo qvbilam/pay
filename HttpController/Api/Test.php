@@ -53,7 +53,7 @@ class Test extends Base
 
     public function useMysql()
     {
-        $res = $this->db->where('id', 1, '=')->get($this->tableName, 1);
+        $res = $this->db->where('id', 'qvbilam_test', '=')->get($this->tableName, 1);
         return $this->success(0, 'ok', $res);
     }
 
@@ -64,51 +64,23 @@ class Test extends Base
         return $this->success(0, 'ok', $res);
     }
 
-    public function hellotest()
-    {
-//        $data = [
-//            'orderId' => 123
-//        ];
-//        $class = new CrateOrder($data);
-//        echo 'start' . PHP_EOL;
-//        TaskManager::async($class);
-//        echo 'end' . PHP_EOL;
-        echo 123 . PHP_EOL;
-
-        // Header("location: $url");
-        $this->response()->write("<html><h1>你好</h1></h1></html>");
-        $a  = $this->response()->write("<script>alert(123)</script>");
-        $a = 123;
-        TaskManager::async(function(){
-            sleep(5);
-            echo "<script>alter(123)</script>";
-            $url = 'http://www.baidu.com';
-            // $response->redirect($url);
-
-        });
-
-        // 跳转
-
-        echo 345 . PHP_EOL;
-
-    }
 
 
     public function hello()
     {
-        $html = (new PayHtml())->getTest();
-        return $this->response()->write($html);
-//        $merchant = 'testadd';
-//        $money = '200';
-//        $channel = 402;
-//        $data = (new TurnoverCache())->setAllMoney($merchant, $channel, $money);
-//        return $this->success(0, 'ok', $data);
-        // $data = $this->merchantOrder();
-//        $merchant = 'qvbilam_test2';
-//        $channel = 402;
-//        $data = (new TurnoverCache())->getChannelTunoverMonth($merchant,$channel);
-//        // $data = (new TurnoverModel())->getAllTurnoverlDay($merchant);
-//        return $this->success(1, 0, $data);
+        $merchant = 'qvbilam_test';
+        $channel = 301;
+        $tableName = 'merchant_money_log';
+        $time_month = date("Y-m");
+        $result = $this->db
+            ->groupBy('merchant_id,channel_id')
+            ->where('time', $time_month,">=")
+            ->where('merchant_id', $merchant)
+            ->where('channel_id', $channel)
+            ->getOne($tableName, "sum(money) as money,merchant_id,channel_id");
+//            ->getOne('merchant_money_log','sum(money) as money,merchant_id,channel_id');
+//        $result = $this->db->getLastQuery();
+        return $this->success(0,0,$result);
     }
 
     public function test()

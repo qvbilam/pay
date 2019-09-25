@@ -90,7 +90,8 @@ class Index extends Base
     public function unifiedorder()
     {
         // todo 设置域名
-        $host = '127.0.0.1:9501/api/index/getPay';
+        $serverName = empty($_SERVER['SERVER_NAME']) ? '127.0.0.1' : $_SERVER['SERVER_NAME'];
+        $host = $serverName . '/api/index/getPay';
         $checkData = $this->checkUnifiedorder($this->params);
         if ($checkData['code'] != ReturnCode::SUCCESS) {
             return $this->error($checkData['code'], $checkData['msg']);
@@ -303,101 +304,4 @@ class Index extends Base
         $action = $action_array[array_rand($action_array, 1)];
         return ['code' => ReturnCode::SUCCESS, 'msg' => ReturnCode::getReasonPhrase(ReturnCode::SUCCESS), 'data' => ['action' => $action]];
     }
-
-
-//    protected function discardUnifiedorder()
-//    {
-//        // 验证传参是否存在
-//        $checkParams = $this->checkRequestData($this->unifiedorderData);
-//        if ($checkParams['code'] != ReturnCode::SUCCESS) {
-//            return $this->error($checkParams['code'], $checkParams['msg']);
-//        }
-//        $params = $this->params;
-//        // 验证商户
-//        $merchant = (new MerchantCache())->getMerchant($params['mch_id']);
-//        if (!$merchant) {
-//            return $this->error(ReturnCode::CHECK_MERCHANT, ReturnCode::getReasonPhrase(ReturnCode::CHECK_MERCHANT));
-//        }
-//        // 验证地址
-//        $params['notify_url'] = urldecode($params['notify_url']);
-//        if (!filter_var($params['notify_url'], FILTER_VALIDATE_URL, FILTER_FLAG_PATH_REQUIRED)) {
-//            return $this->error(ReturnCode::CHECK_NOTIFY_URL, ReturnCode::getReasonPhrase(ReturnCode::CHECK_NOTIFY_URL));
-//        }
-//        $key = $merchant['app_secret'];
-//        $params['return_url'] = urldecode($params['return_url']);
-//        $sign = $params['sign'];
-//        unset($params['sign']);
-//        $signature = Sign::getSign($key, $params);
-//        if ($sign != $signature) {
-//            return $this->error(ReturnCode::CHECK_SIGN, ReturnCode::getReasonPhrase(ReturnCode::CHECK_SIGN) . 'rely sign:' . $signature);
-//        }
-//        // 验证订单
-//        $checkOrder = (new Order())->checkMerchantOrder($params['mch_id'], $params['trade_no']);
-//        if (!$checkOrder) {
-//            return $this->error(ReturnCode::CHECK_ORDER, ReturnCode::getReasonPhrase(ReturnCode::CHECK_ORDER));
-//        }
-//        // 获取商户开通的通道
-//        $charge = (new Charge())->getCharge($params['mch_id'], $params['pay_type']);
-//        if (!$charge) {
-//            return $this->error(ReturnCode::CHECK_CHARGE, ReturnCode::getReasonPhrase(ReturnCode::CHECK_CHARGE));
-//        }
-//        // 验证charge
-//        $checkCharge = $this->checkCharge($charge, $merchant, $params);
-//        if ($checkCharge['code'] != ReturnCode::SUCCESS) {
-//            return $this->error($checkCharge['code'], $checkCharge['msg']);
-//        }
-//        $charge['level'] = $merchant['level'];
-//        $charge['money'] = $params['money'];
-//        $charge['time'] = intval($params['time']);
-//        // 验证charge并获取pay_url
-//        $getAction = (new Channel())->getAction($charge);
-//        if ($getAction['code'] != ReturnCode::SUCCESS) {
-//            return $this->error($getAction['code'], $getAction['msg']);
-//        }
-//        // 添加数据
-//        $action = $getAction['data'];
-//        $setData = $params;
-//        $setData['create_time'] = $charge['time'];
-//        $setData['pay_action'] = $action['action_id'];
-//        $request = $this->request()->getServerParams();
-//        $setData['ip'] = $request['remote_addr'];
-//        $setData['self_check'] = $action['self_check'];
-//        // 将添加的数据写入数据库
-//        $res = $this->settlePaymentPrepareData($setData, $action);
-//        if ($res['code'] == ReturnCode::SUCCESS) {
-//            return $this->success($res['code'], $res['msg'], $action['pay_url']);
-//        }
-//        return $this->error($res['code'], $res['msg']);
-//    }
-//
-//    /*
-//     * 验证通道
-//     * 如果金钱限制 小于等于0说明没有限制
-//     * */
-//    protected function checkCharge($charge, $merchant, $params)
-//    {
-//        // 渠道下交易额限定的验证
-//        if ($charge['state'] == 0) {
-//            return ['code' => ReturnCode::CHECK_CHARGE_STATE, 'msg' => ReturnCode::getReasonPhrase(ReturnCode::CHECK_CHARGE_STATE)];
-//        }
-//        // 单次额度限制
-//        if ($charge['money_max'] > 0 && $params['money'] > $charge['money_max']) {
-//            return ['code' => ReturnCode::CHECK_CHARGE_MAX_MONEY, 'msg' => ReturnCode::getReasonPhrase(ReturnCode::CHECK_CHARGE_MAX_MONEY)];
-//        }
-//        // 单日额度限制,获取商户渠道下交易额的缓存
-//        $channelDayMoney = (new TurnoverCache())->getChannelTunoverDay($params['mch_id'], params['pay_type']);
-//        // 高精度想加减计算.bcadd+,bcsub-
-//        $checkMaxDay = bcsub(bcadd($channelDayMoney, $params['money']), $charge['money_max_day']);
-//        if ($charge['money_max_day'] > 0 && $checkMaxDay < 0) {
-//            return ['code' => ReturnCode::CHECK_CHARGE_MAX_DAY_MONEY, 'msg' => ReturnCode::getReasonPhrase(ReturnCode::CHECK_CHARGE_MAX_DAY_MONEY)];
-//        }
-//        $channelMonthMoney = (new TurnoverCache())->getChannelTunoverMonth($params['mch_id'], params['pay_type']);
-//        $checkMaxMonth = bcsub(bcadd($params['money'], $channelMonthMoney), $charge['money_max_month']);
-//        if ($charge['money_max_month'] > 0 && $checkMaxMonth < 0) {
-//            return ['code' => ReturnCode::CHECK_CHARGE_MAX_MONTH_MONEY, 'msg' => ReturnCode::getReasonPhrase(ReturnCode::CHECK_CHARGE_MAX_MONTH_MONEY)];
-//        }
-//        return ['code' => ReturnCode::SUCCESS, 'msg' => ReturnCode::getReasonPhrase(ReturnCode::SUCCESS)];
-//    }
-
-
 }

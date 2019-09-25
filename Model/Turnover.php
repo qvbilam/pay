@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Model;
+
 use App\Lib\Code\ReturnCode;
 use EasySwoole\EasySwoole\Swoole\Task\TaskManager;
 
@@ -13,7 +14,7 @@ class Turnover extends Base
     /*
      *
      * */
-    public function setTurnover($merchant,$channel,$money)
+    public function setTurnover($merchant, $channel, $money)
     {
         $date = date("Y-m-d");
         $checkMerchant = $this->checkMerchant($merchant);
@@ -21,7 +22,7 @@ class Turnover extends Base
             return 'request merchant error';
         }
         $checkChannel = $this->checkChannel($channel);
-        if(!$checkChannel){
+        if (!$checkChannel) {
             return 'request channel error';
         }
         $data = [
@@ -30,8 +31,8 @@ class Turnover extends Base
             'time' => $date,
             'money' => $money
         ];
-        $id = $this->db->insert($this->tablename,$data);
-        if(!$id){
+        $id = $this->db->insert($this->tablename, $data);
+        if (!$id) {
             return $this->db->getLastError();
         }
         return ReturnCode::SUCCESS;
@@ -48,7 +49,7 @@ class Turnover extends Base
         }
         $time_month = date("Y-m");
         $result = $this->db->groupBy('merchant_id')
-            ->where('time', [">=" => $time_month])
+            ->where('time', $time_month, ">=")
             ->where('merchant_id', $merchant)
             ->getOne($this->tablename, "sum(money) as money,merchant_id");
         $result = !empty($result) ? $result : ['money' => 0, 'merchant_id' => $merchant];
@@ -85,7 +86,7 @@ class Turnover extends Base
         }
         $time_month = date("Y-m");
         $result = $this->db->groupBy('merchant_id,channel_id')
-            ->where('time', [">=" => $time_month])
+            ->where('time', $time_month, ">=")
             ->where('merchant_id', $merchant)
             ->where('channel_id', $channel)
             ->getOne($this->tablename, "sum(money) as money,merchant_id,channel_id");
