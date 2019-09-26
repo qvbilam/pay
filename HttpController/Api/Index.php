@@ -57,7 +57,8 @@ class Index extends Base
     public function unifiedorder()
     {
         // todo 设置域名
-        $serverName = empty($_SERVER['SERVER_NAME']) ? '127.0.0.1' : $_SERVER['SERVER_NAME'];
+        $serverHeader = $this->request()->getSwooleRequest()->header;
+        $serverName = empty($serverHeader['host']) ? 'test.qvbilam.xin' : $serverHeader['host'];
         $host = $serverName . '/getpay';
         $checkData = $this->checkUnifiedorder($this->params);
         if ($checkData['code'] != ReturnCode::SUCCESS) {
