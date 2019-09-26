@@ -34,19 +34,16 @@ class CreateOrder extends AbstractAsyncTask
         $returnData = ['orderId' => $orderId];
         // uuid的判断
         if(!isset($taskData['uuid'])){
-            echo 'error1' . PHP_EOL;
             return ['code' => 0, 'msg' => 'Not Getting Uuid', 'data' => $returnData];
         }
         $uuid = $taskData['uuid'];
         $returnData['uuid'] = $uuid;
         // 交易额的判断
         if (!isset($taskData['money'])) {
-            echo 'error2' . PHP_EOL;
             return ['code' => 0, 'msg' => 'Not Getting Money', 'data' => $returnData];
         }
         $money = $taskData['money'];
         if (!isset($taskData['mobile'])) {
-            echo 'error3' . PHP_EOL;
             return ['code' => 0, 'msg' => 'Not Getting Mobile', 'data' => $returnData];
         }
         $mobile = $taskData['mobile'];

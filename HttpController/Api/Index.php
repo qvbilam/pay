@@ -50,39 +50,6 @@ class Index extends Base
         'mch_id'             // 商户号
     ];
 
-
-    /*
-     * 获取订单支付接口
-     * */
-    public function getPay()
-    {
-        $params = $this->params;
-        if (!isset($params['uuid'])) {
-            return $this->error(0, '为获取到uuid');
-        }
-        $uuid = $params['uuid'];
-        $data = (new PayHtml())->getPayHtml($uuid);
-        if ($data['code'] < 0) {
-            return $this->error(-1, '不存在');
-        }
-        if ($data['code'] == 0) {
-            return $this->error(-1, '订单处理中');
-        }
-        if (!isset($data['data']['html'])) {
-            return $this->error(-1, '获取地址失败');
-        }
-        $html = $data['data']['html'];
-        // $html = htmlspecialchars_decode($data['data']['html']);
-        echo htmlspecialchars_decode($data['data']['html']);
-        if (filter_var($html, FILTER_VALIDATE_URL, FILTER_FLAG_PATH_REQUIRED)) {
-            // 输出
-            return $this->response()->write($html);
-        }
-        return $this->response()->write($html);
-        // 跳转
-        return $this->response()->redirect($html);
-    }
-
     /*
      * 创建订单接口
      * 返回uuid
@@ -91,7 +58,7 @@ class Index extends Base
     {
         // todo 设置域名
         $serverName = empty($_SERVER['SERVER_NAME']) ? '127.0.0.1' : $_SERVER['SERVER_NAME'];
-        $host = $serverName . '/api/index/getPay';
+        $host = $serverName . '/getpay';
         $checkData = $this->checkUnifiedorder($this->params);
         if ($checkData['code'] != ReturnCode::SUCCESS) {
             return $this->error($checkData['code'], $checkData['msg']);
