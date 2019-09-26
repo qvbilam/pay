@@ -24,7 +24,7 @@ use App\Cache\Channel as ChannelCache;
 use App\Lib\Random\RandomStr;
 use EasySwoole\EasySwoole\Swoole\Task\TaskManager;
 use App\Cache\PayHtml;
-
+use \Yaconf;
 
 class Index extends Base
 {
@@ -57,8 +57,7 @@ class Index extends Base
     public function unifiedorder()
     {
         // todo 设置域名
-        $serverHeader = $this->request()->getSwooleRequest()->header;
-        $serverName = empty($serverHeader['host']) ? 'test.qvbilam.xin' : $serverHeader['host'];
+        $serverName = Yaconf::get('pay_api_host.api_url');
         $host = $serverName . '/getpay';
         $checkData = $this->checkUnifiedorder($this->params);
         if ($checkData['code'] != ReturnCode::SUCCESS) {
