@@ -52,8 +52,8 @@ class Test extends Base
     {
         $url = 'http://192.168.3.152:6346/api/withdraw';
         $params['money'] = 10000;       // 1分钱
-        $params['app_tx_id'] = 'TX-ahqw23093--201910221929333510';
-        $params['notify_url'] = 'http://127.0.0.1:9501';
+        $params['app_tx_id'] = 'TX-ahqw23093--201910221929333515';
+        $params['notify_url'] = \Yaconf::get('pay_api_host.admin_url') . \Yaconf::get('pay_api_host.test_notify');
         $params['app_key'] = 'kkpay';
         $params['bank_info'] = '回龙观支行';
         $params['bank_name'] = '333';
