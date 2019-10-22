@@ -10,6 +10,7 @@ namespace App\HttpController\Api;
 
 use App\Cache\PayHtml;
 use app\command\Task;
+use App\Lib\Code\ReturnCode;
 use App\Task\CrateOrder;
 use EasySwoole\Component\Di;
 use App\Model\Test as TestModel;
@@ -20,7 +21,12 @@ use App\Model\Turnover as TurnoverModel;
 use EasySwoole\EasySwoole\Swoole\Task\TaskManager;
 use \Ixudra\Curl\CurlService;
 use function PHPSTORM_META\type;
-
+use App\Lib\Random\RandomStr;
+use App\HttpController\Api\User;
+use App\Model\PaymentPrepare;
+use App\Model\PaymentChannelAction;
+use App\HttpController\Pay\Wechat;
+use App\Lib\Sign\Sign;
 
 class Test extends Base
 {
@@ -44,11 +50,96 @@ class Test extends Base
 
     public function index()
     {
-        //$res = (new TestModel())->test();
-        $mch_id = 'qvbilam_test';
-        // $res =MerchantModel::where('id',$mch_id)->getOne();
-        $res = $this->db->where('id', $mch_id)->getOne($this->tableName);
-        return $this->writeJson(0, 'ok', $res);
+        $url = 'http://192.168.3.152:6346/api/withdraw';
+        $params['money'] = 10000;       // 1分钱
+        $params['app_tx_id'] = 'TX-ahqw23093--201910221929333510';
+        $params['notify_url'] = 'http://127.0.0.1:9501';
+        $params['app_key'] = 'kkpay';
+        $params['bank_info'] = '回龙观支行';
+        $params['bank_name'] = '333';
+        $params['bank_user_name'] = '333';
+        $params['card_no'] = '111';
+        $params['card_id'] = '';
+        $app_secret = '123456';
+        /*
+         *  money：金额
+            app_tx_id：提现订单号
+            notify_url：通知地址
+            app_key：kkpay
+            sign：加密
+            bank_info:开户行名称
+            bank_name:银行
+            bank_user_name：用户姓名
+            card_no
+         * */
+        // $sign = 'f8dd90b9016131ba8613218f28744239';
+        $sign = Sign::getSign($app_secret, $params);
+        $params['sign'] = $sign;
+        print_r($params);
+        $res = (new CurlService())->to($url)
+            ->withData( $params )
+            ->post();
+        print_r($res);
+
+        return $this->success(0,0,'');
+//        $url = 'http://192.168.3.152/api/withdraw';
+//        $params['money'] = 1;       // 1分钱
+//        $params['app_tx_id'] = 'CN' . date('YmdHis') . rand(1000, 9999);
+//        $params['notify_url'] = 'http://127.0.0.1';
+//        $params['app_key'] = 'kkpay';
+//        $app_secret = '123456';
+//        $sign = Sign::getSign($app_secret, $params);
+//        $params['sign'] = $sign;
+//
+//        $res = (new CurlService())->to($url)
+//            ->withData( $params )
+//            ->post();
+//        print_r($res);
+//        print_r($params);
+//        return $this->success(0,0,$res);
+
+
+
+
+
+
+
+
+//        $failNumber = 5;    // 默认失败次数
+//        $failStatus = ['waiting'];
+//        for ($i = 1;$i<$failNumber;$i++){
+//            array_push($failStatus,$i);
+//        }
+//        return $this->success(0,0,$failStatus);
+//        $data = (new PaymentPrepare())->getAllFailOrder();
+//        foreach ($data as $val){
+//            $action = (new PaymentChannelAction)->getActionOne($val['pay_method']);
+//            $source = $action['source'];
+//            switch ($source){
+//                case 'wechat':
+//                    $res = (new Wechat())->orderQuery($val['id']);
+//                    if(empty($res) || $res['return_code'] != 'SUCCESS'){
+//                        // 失败5次决定为失败
+//                        if($val['result_desc'] != 5){
+//                            $failStatus = ['waiting','bind_fail',1,2,3,4];
+//                            $changeData = (!in_array($val['result_desc'],$failStatus))?['result_desc' => 1]:['result_desc' => $val['result_desc'] + 1];
+//                            $changeRes = (new PaymentPrepare())->updateBataById($val['id'],$changeData);
+//                        }
+//                    }
+//                    break;
+//                case 'alipay':
+//                    break;
+//            }
+//        }
+//        return $this->success(0,0,$data);
+//        /* 加减 */
+//        $data = ['category_id' => $this->db->dec(2)];
+//        // $data = ['category_id' => $this->db->inc(-2)];
+//        $res = $this->db->where('id',2)->update('test',$data);
+//        if(!$res){
+//            return $this->error(-4,$this->db->getLastError());
+//        }
+//        return $this->success(0,'1ok');
     }
 
     public function useMysql()
@@ -64,23 +155,25 @@ class Test extends Base
         return $this->success(0, 'ok', $res);
     }
 
-
-
     public function hello()
     {
         $merchant = 'qvbilam_test';
-        $channel = 301;
-        $tableName = 'merchant_money_log';
-        $time_month = date("Y-m");
-        $result = $this->db
-            ->groupBy('merchant_id,channel_id')
-            ->where('time', $time_month,">=")
-            ->where('merchant_id', $merchant)
-            ->where('channel_id', $channel)
-            ->getOne($tableName, "sum(money) as money,merchant_id,channel_id");
-//            ->getOne('merchant_money_log','sum(money) as money,merchant_id,channel_id');
-//        $result = $this->db->getLastQuery();
-        return $this->success(0,0,$result);
+        $scoure = 1;
+        $data = (new User())->getPayConfig($merchant,$scoure);
+        if($data['code'] != ReturnCode::SUCCESS){
+            return $this->error($data['code'],$data['msg']);
+        }
+        return $this->success($data['code'],$data['msg'],$data['data']);
+    }
+
+    public function upload()
+    {
+        $params = $this->params;
+        $request=  $this->request();
+        $img_file = $request->getUploadedFile('img');//获取一个上传文件,返回的是一个\EasySwoole\Http\Message\UploadFile的对象
+        //$data = $request->getUploadedFiles();
+        $data = $request->getUploadedFile('file');
+        print_r($data->getClientFilename());
     }
 
     public function test()

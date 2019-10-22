@@ -8,14 +8,20 @@
 
 namespace App\HttpController\Pay;
 
+use App\Lib\Code\ReturnCode;
 use EasySwoole\Pay\WeChat\Config;
 use EasySwoole\Pay\Pay;
 use EasySwoole\Pay\WeChat\RequestBean\Scan;
 use EasySwoole\Pay\WeChat\RequestBean\Wap;
 use EasySwoole\Pay\WeChat\RequestBean\OrderFind;
+use App\Cache\Order;
+
 
 class Wechat extends Base
 {
+    /*
+     * 测试用的虚拟数据
+     * */
     protected $product_id = '123456789';
     protected $scan_body = '二滑大魔王扫码付款';
     protected $wap_body = '二滑大魔王-WAP测试';
@@ -24,6 +30,11 @@ class Wechat extends Base
 
     public function __construct()
     {
+        /*
+         * 默认用自己商户的配置
+         * 如果用户选择自己的通过数据表fa_merchant_config获取以下配置
+         * 再进行重定义
+         * */
         $wechatConfig = new Config();
         $wechatConfig->setAppId('wxf67e5d6039607945');
         $wechatConfig->setMchId('1497029642');
@@ -40,29 +51,35 @@ class Wechat extends Base
      * scan扫码支付
      * 传入元-> 转成分
      */
-    public function scan($money = 100)
+    public function scan($money = 100, $outTradeNo = '', $ip)
     {
-        $money = $money / 100;
-        $outTradeNo = 'CN' . date('YmdHis') . rand(1000, 9999);
+        $money = $money * 100;
+        // $outTradeNo = 'CN' . date('YmdHis') . rand(1000, 9999);
+        $outTradeNo = empty($outTradeNo) ? (new Order())->createNo() : $outTradeNo;
         $bean = new Scan();
         $bean->setOutTradeNo($outTradeNo);
         $bean->setProductId($this->product_id);
         $bean->setBody($this->scan_body);
         $bean->setTotalFee($money);
-        $bean->setSpbillCreateIp($this->request()->getHeader('x-real-ip')[0]);
+        $bean->setSpbillCreateIp($ip);
+        // $bean->setSpbillCreateIp($this->request()->getHeader('x-real-ip')[0]);
         $pay = new Pay();
         $data = $pay->weChat($this->wechatConfig)->scan($bean);
         $url2 = $data->getCodeUrl();
         $image = $this->qrcode($url2);
-        echo "WAP--- " . $outTradeNo . "\r\n";
-        $str = '<html><head><meta http-equiv="content-type" content="text/html;charset=utf-8"/>';
-        $str .= '<meta name="viewport" content="width=device-width, initial-scale=1" />';
-        $str .= '<title>微信-扫码支付</title></head>';
-        $str .= '<body><div style="margin-left: 10px;color:#556B2F;font-size:30px;font-weight: bolder;">微信扫码支付</div><br/>';
-        //$str .= '<img alt="微信扫码支付" src="/index/qrcode?data=' . urlencode($url1) . '" style="width:150px;height:150px;"/>';
-        $str .= '<img alt="微信扫码支付" src="' . $image . '" style="width:150px;height:150px;"/>';
-        $str .= '</body></html>';
-        $this->response()->write($str);
+        // 返回图片路径
+        return $image;
+
+        // return ['code' => 0,'msg' => 'ok', 'data' => $image];
+//        echo "WAP--- " . $outTradeNo . "\r\n";
+//        $str = '<html><head><meta http-equiv="content-type" content="text/html;charset=utf-8"/>';
+//        $str .= '<meta name="viewport" content="width=device-width, initial-scale=1" />';
+//        $str .= '<title>微信-扫码支付</title></head>';
+//        $str .= '<body><div style="margin-left: 10px;color:#556B2F;font-size:30px;font-weight: bolder;">微信扫码支付</div><br/>';
+//        //$str .= '<img alt="微信扫码支付" src="/index/qrcode?data=' . urlencode($url1) . '" style="width:150px;height:150px;"/>';
+//        $str .= '<img alt="微信扫码支付" src="' . $image . '" style="width:150px;height:150px;"/>';
+//        $str .= '</body></html>';
+//        $this->response()->write($str);
     }
 
     /**
@@ -79,7 +96,7 @@ class Wechat extends Base
         $wap->setSpbillCreateIp('xxxxx');
         $pay = new \EasySwoole\Pay\Pay();
         $params = $pay->weChat($this->wechatConfig)->wap($wap);
-        return $this->success(0,0,$params);
+        return $this->success(0, 0, $params);
     }
 
 
@@ -108,16 +125,25 @@ class Wechat extends Base
     /**
      * 订单查询
      */
-    public function orderQuery()
+    public function orderQuery($order='')
     {
         $wechatConfig = $this->wechatConfig;
-        $order = $this->order;
-        go(function () use ($wechatConfig,$order) {
+        // $order = $this->order;
+        go(function () use ($wechatConfig, $order) {
             $orderFind = new OrderFind();
             $orderFind->setOutTradeNo($order);
             $pay = new Pay();
             $info = $pay->weChat($wechatConfig)->orderFind($orderFind);
-            print_r((array)$info);
+            $info = (array)$info;
+            if ($info['return_code'] != 'SUCCESS') {
+                return ['code' => ReturnCode::INVALID, 'msg' => $info['return_msg']];
+
+            }
+            return ['code' => ReturnCode::SUCCESS, 'msg' => ReturnCode::getReasonPhrase(ReturnCode::SUCCESS), 'data' => $info['trade_state']];
+
+            // return $info['out_trade_no'];
+            // print_r((array)$info);
+
             //Array
             //(
             //    [return_code] => SUCCESS
@@ -150,12 +176,16 @@ class Wechat extends Base
 
     /**
      * 订单退款
+     * $order 订单号
+     * $refundOrder 退款订单号
+     * $totalFee 订单金额
+     * $refundFee 退款金额
      */
-    public function refund()
+    public function refund($order,$refundOrder,$totalFee,$refundFee)
     {
         $wechatConfig = $this->wechatConfig;
         $order = $this->order;
-        go(function () use ($wechatConfig,$order) {
+        go(function () use ($wechatConfig, $order) {
             $refund = new \EasySwoole\Pay\WeChat\RequestBean\Refund();
             $refund->setOutTradeNo($order);
             $refund->setOutRefundNo('TK' . date('YmdHis') . rand(1000, 9999));
@@ -203,7 +233,7 @@ class Wechat extends Base
     {
         $wechatConfig = $this->wechatConfig;
         $order = $this->order;
-        go(function () use ($wechatConfig,$order) {
+        go(function () use ($wechatConfig, $order) {
             $refundFind = new \EasySwoole\Pay\WeChat\RequestBean\RefundFind();
             $refundFind->setOutTradeNo($order);
             $pay = new \EasySwoole\Pay\Pay();

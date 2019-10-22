@@ -50,9 +50,13 @@ class Base extends BaseController
 
     public function qrcode($data = 'http://www.helloweba.com')
     {
-        $path = EASYSWOOLE_ROOT . '/public/Image/' . rand(00000, 99999) . '.png';
+        $serverPath = EASYSWOOLE_ROOT;
+        $filePath = '/public/Image/';
+        $file = rand(00000, 99999) . '.png';
+        $path = $serverPath . $filePath . $file;
+        // $path = EASYSWOOLE_ROOT . '/public/Image/' . rand(00000, 99999) . '.png';
         \QRcode::png($data, $path);
-        return $path;
+        return $filePath . $file;
     }
 
     /**

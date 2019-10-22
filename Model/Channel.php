@@ -13,7 +13,7 @@ use App\Lib\Code\ReturnCode;
 
 class Channel extends Base
 {
-    public function getPayUrl($action,$url)
+    public function getPayUrl($action,$url='')
     {
         $ret['self_check'] = 0;
         switch ($action) {
@@ -28,6 +28,8 @@ class Channel extends Base
             case '33':
                 $ret['pay_url'] = $url;
                 break;
+            case 'wechat':
+                $ret['pay_url'] = $url;
         }
         if (!isset($ret['pay_url'])) {
             return ['code' => ReturnCode::EMPTY_PAY_URL, 'msg' => ReturnCode::getReasonPhrase(ReturnCode::EMPTY_PAY_URL)];

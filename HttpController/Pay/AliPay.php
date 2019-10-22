@@ -63,18 +63,13 @@ class AliPay extends BaseController
         $aliConfig->setAppId('2016091800538339');
         $aliConfig->setPublicKey('阿里公钥');
         $aliConfig->setPrivateKey('阿里私钥');
-
-        $pay = new Pay();
-
         $pay = new Pay();
         $order = new Scan();
         $order->setSubject('测试');
         $order->setTotalAmount('0.01');
         $order->setOutTradeNo(time());
-
         $aliPay = $pay->aliPay($aliConfig);
         $data = $aliPay->scan($order)->toArray();
-       // return $this->success(0,0,$data);
         $response = $aliPay->preQuest($data);
         var_dump($response);
         // qr_code 当前预下单请求生成的二维码码串，可以用二维码生成工具根据该码串值生成对应的二维码  https://qr.alipay.com/bavh4wjlxf12tper3a

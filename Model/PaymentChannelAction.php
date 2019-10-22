@@ -17,4 +17,5 @@ class PaymentChannelAction extends Base
         return $this->db->where('channel_id',$channel_id)->getOne($this->tablename);
     }
 
+
 }

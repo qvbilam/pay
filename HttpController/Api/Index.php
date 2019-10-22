@@ -25,13 +25,14 @@ use App\Lib\Random\RandomStr;
 use EasySwoole\EasySwoole\Swoole\Task\TaskManager;
 use App\Cache\PayHtml;
 use \Yaconf;
+use App\HttpController\Pay\Wechat;
 
 class Index extends Base
 {
     // unifiedorder 必传参数
     protected $unifiedorderData = [
         'trade_no',         // 商户系统订单编号
-        'money',            // 订单⾦金金额
+        'money',            // 订单金额
         'product_id',       // 商品编号
         'product_name',     // 商品名称
         'pay_type',         // ⽀付⽅方式
@@ -49,6 +50,53 @@ class Index extends Base
         'sign',              // 签名
         'mch_id'             // 商户号
     ];
+
+    /*
+     * 创建订单接口
+     * 返回二维码地址
+     * 生成的order_id是和第三方交互用的
+     * 用户传入的trade_no 是用于查询order及订单其他信息的
+     * */
+    public function index()
+    {
+        $checkData = $this->checkUnifiedorder($this->params);
+        if ($checkData['code'] != ReturnCode::SUCCESS) {
+            return $this->error($checkData['code'], $checkData['msg']);
+        }
+        // 生成交易id
+        $orderId = (new Order())->createNo();
+        // 获取支付渠道,
+        $actionId = $checkData['data']['action'];
+        // 获取微信二维码地址
+        $ip = $this->request()->getServerParams()['remote_addr'];
+        // 生成二维码的Url
+        $url = (new Wechat())->scan($this->params['money'], $orderId, $ip);
+        // 写入数据
+        $data = [
+            'id' => $orderId,
+            'merchant_id' => $this->params['mch_id'],
+            'merchant_order' => $this->params['trade_no'],
+            'money' => $this->params['money'],
+            'product_id' => $this->params['product_id'],
+            'product_name' => $this->params['product_name'],
+            'pay_method' => $this->params['pay_type'],
+            'notify_url' => $this->params['notify_url'],
+            'return_url' => $this->params['return_url'],
+            'create_time' => date('Y-m-d H:i:s'),
+            'attach_data' => isset($this->params['ext_data']) ? $this->params['ext_data'] : '',
+            'merchant_post_data' => json_encode($this->params),
+            'merchant_ip' => $ip,
+            'pay_action' => $actionId
+        ];
+        $insertRes = (new PaymentPrepare())->createPaymentPrepare($data);
+        if (!$insertRes != ReturnCode::SUCCESS) {
+            return $this->error($insertRes['code'], $insertRes['msg']);
+        }
+        // todo 支付渠道数据fa_payment_action_log.没有先不写入.
+        $host = Yaconf::get('pay_api_host.api_url');
+        return $this->success(ReturnCode::SUCCESS, ReturnCode::getReasonPhrase(ReturnCode::SUCCESS), $host . $url);
+    }
+
 
     /*
      * 创建订单接口
@@ -131,7 +179,12 @@ class Index extends Base
         return $this->success(ReturnCode::SUCCESS, ReturnCode::getReasonPhrase(ReturnCode::SUCCESS), $ret);
     }
 
-    // 处理预备订单数据
+
+    /*
+     * 处理预备订单数据
+     * 对移动数据有效
+     * 废弃.暂时保留
+     * */
     protected function settlePaymentPrepareData($orderId, $data, $action)
     {
 
@@ -198,11 +251,11 @@ class Index extends Base
         if ($sign != $signature) {
             return ['code' => ReturnCode::CHECK_SIGN, 'msg' => ReturnCode::getReasonPhrase(ReturnCode::CHECK_SIGN) . 'rely sign:' . $signature];
         }
-        // 验证订单
-//        $checkOrder = (new Order())->checkMerchantOrder($params['mch_id'], $params['trade_no']);
-//        if (!$checkOrder) {
-//            return ['code' => ReturnCode::CHECK_ORDER, 'msg' => ReturnCode::getReasonPhrase(ReturnCode::CHECK_ORDER)];
-//        }
+        // 验证订单: 存在则为重复返回失败
+        $checkOrder = (new Order())->checkMerchantOrder($params['mch_id'], $params['trade_no']);
+        if ($checkOrder) {
+            return ['code' => ReturnCode::CHECK_ORDER, 'msg' => ReturnCode::getReasonPhrase(ReturnCode::CHECK_ORDER)];
+        }
         // 获取商户在渠道下的费率
         $charge = (new Charge())->getCharge($params['mch_id'], $params['pay_type']);
         if (!$charge) {

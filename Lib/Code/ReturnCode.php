@@ -13,8 +13,13 @@ use EasySwoole\Http\Message\Status;
 class ReturnCode
 {
     // 通用返回码
-    const SUCCESS = 0;
-    const INVALID = -1;
+    const UPLOAD_CERT_SUCCESS = 1;                      // 文件上传成功返回
+    const SUCCESS = 0;                                  // 成功
+    const INVALID = -1;                                 // 错误
+    const DATABASE_EMPTY =  -2;                         // 数据库数据为空
+    const DATABASE_INSERT_ERROR = -3;                   // 数据库插入失败--动态错误信息
+    const DATABASE_UPDATE_ERROR = -4;                   // 数据库修改失败--动态错误信息
+    const DATABASE_DELETE_ERROR = -5;                   // 数据库删除失败--动态错误信息
 
 
     /*
@@ -37,7 +42,7 @@ class ReturnCode
     const CHECK_SIGN = -1010;                           // 签名不正确
     const CHECK_MERCHANT = -1011;                       // 商户不存在
     const CHECK_NOTIFY_URL = -1012;                     // 异步通知地址格式不对
-    const CHECK_ORDER = -1013;                          // 订单不存在
+    const CHECK_ORDER = -1013;                          // 订单号已存在存在
     // 通道部分
     const CHECK_CHARGE = -1014;                         // 商户未开通charge(通道)
     const CHECK_CHARGE_STATE = -1015;                   // 通道关闭
@@ -61,12 +66,18 @@ class ReturnCode
     const INSERT_DATA_PREPARE = -2002;                  // 插入预备订单表失败
     const OPEN_TIME = -2003;                            // 不在开放时间内
     /*
-     * 订单查询返回码
+     * 上传证书返回码
      * */
+    const UPLOAD_EMPTY_MERCHANT_OR_SOUCRE = -3001;      // 上传文件为表明商户号和来源
+    const UPLOAD_CERT_TYPE_ERROR = -3002;               // 文件上传类型错误
+    const UPLOAD_CERT_MKDIR_ERROR = -3003;              // 创建目录失败
+    const UPLOAD_CERT_MOVE_ERROR = -3004;               // 上传文件落盘失败
 
     static public $msg = [
+        1 => '上传成功',
         0 => 'ok',
         -1 => 'error',
+        -2 => 'The query result is empty',
         // 1xxx
         -1000 => 'params empty sign.',
         -1001 => 'params empty mch_id.',
@@ -81,7 +92,7 @@ class ReturnCode
         -1010 => 'signature err.',
         -1011 => 'empty mch_id.',
         -1012 => 'notify_url err.',
-        -1013 => 'trade_no resend',
+        -1013 => 'trade_no is exist',
         -1014 => 'charge err',
         -1015 => 'charge is close',
         -1016 => 'money_max_err',
@@ -98,6 +109,11 @@ class ReturnCode
         -2001 => 'pay_url err',
         -2002 => 'money_max_month err',
         -2003 => 'time not in starttiem',
+        // 3xxx
+        -3001 => 'Parameters must contain merchant and source',
+        -3002 => 'Please upload apiclient_key.pem and apiclient_cert.pem',
+        -3003 => 'mkdir error',
+        -3004 => 'Failed to move file',
     ];
 
     // 获取空值的code
